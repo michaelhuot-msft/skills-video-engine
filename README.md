@@ -1,7 +1,7 @@
 # Skills Video Engine
 
-Public OCI image containing the shared generation toolchain for agent video
-skills, including
+One portable production studio for agent video skills. This public OCI image
+packages the shared generation toolchain used by
 [explainer-video](https://github.com/mhuot/explainer-video-skill) and
 promo-video:
 
@@ -13,8 +13,29 @@ promo-video:
 After the image is pulled, generation can run without network access. Project
 files remain on the host and are mounted into `/project`.
 
-The image supports Linux AMD64 and ARM64. Docker Desktop on Apple Silicon
-selects the native ARM64 image automatically.
+## See the engine in action
+
+<p align="center">
+  <a href="docs/assets/showcase/skills-video-engine-explainer.mp4?raw=1">
+    <img src="docs/assets/showcase/storyboard-contact-sheet.jpg" alt="Storyboard for the Skills Video Engine explainer" width="900">
+  </a>
+</p>
+
+<p align="center">
+  <strong><a href="docs/assets/showcase/skills-video-engine-explainer.mp4?raw=1">Watch or download the 75-second explainer (MP4)</a></strong>
+</p>
+
+The engine puts narration, browser rendering, encoding, fonts, and media checks
+in one versioned environment. Pull once, mount a project, and invoke each
+production tool directly.
+
+| One production toolchain | Native multi-architecture image | Verified publishing |
+| --- | --- | --- |
+| <img src="docs/assets/showcase/production-toolchain.webp" alt="Narration, browser rendering, encoding, fonts, and media checks shown as one toolchain" width="320"> | <img src="docs/assets/showcase/native-multi-arch.webp" alt="Docker selecting the native ARM64 Skills Video Engine image" width="320"> | <img src="docs/assets/showcase/publish-with-provenance.webp" alt="AMD64 and ARM64 builds passing smoke tests with SBOM and provenance" width="320"> |
+| The same foundations for every video skill. | Linux AMD64 and ARM64, with native selection on Apple Silicon. | Smoke-tested images published with SBOM and provenance attestations. |
+
+Explainer production files and methodology are available in the
+[skills-video-engine-explainer source repository](https://github.com/mhuot/skills-video-engine-explainer).
 
 ## Pull
 

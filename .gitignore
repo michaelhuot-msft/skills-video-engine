@@ -1,5 +1,6 @@
 .DS_Store
 renders/
 *.mp4
+!docs/assets/showcase/*.mp4
 *.mov
 *.wav
