@@ -17,6 +17,6 @@ jobs:
       - name: Run ShellCheck
         run: shellcheck scripts/smoke_test.sh
       - name: Build image
-        run: docker build --platform linux/amd64 -t explainer-video-engine:test .
+        run: docker build --platform linux/amd64 -t skills-video-engine:test .
       - name: Run smoke test
         run: bash scripts/smoke_test.sh

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-image="${1:-explainer-video-engine:test}"
+image="${1:-skills-video-engine:test}"
 
 docker run --rm "${image}" hyperframes --version
 docker run --rm "${image}" python --version
