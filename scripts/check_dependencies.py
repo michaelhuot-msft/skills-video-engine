@@ -15,6 +15,11 @@ from pathlib import Path
 from typing import Any
 
 
+REQUEST_ATTEMPTS = 2
+REQUEST_TIMEOUT_SECONDS = 10
+RETRY_BACKOFF_SECONDS = 1
+
+
 def load_manifest(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as handle:
         manifest = json.load(handle)
@@ -61,15 +66,19 @@ def fetch_json(url: str) -> Any:
         headers["X-GitHub-Api-Version"] = "2022-11-28"
     request = urllib.request.Request(url, headers=headers)
     last_error: OSError | urllib.error.URLError | None = None
-    for attempt in range(3):
+    for attempt in range(REQUEST_ATTEMPTS):
         try:
-            with urllib.request.urlopen(request, timeout=30) as response:
+            with urllib.request.urlopen(
+                request, timeout=REQUEST_TIMEOUT_SECONDS
+            ) as response:
                 return json.load(response)
         except (OSError, urllib.error.URLError) as error:
             last_error = error
-            if attempt < 2:
-                time.sleep(2**attempt)
-    raise RuntimeError(f"upstream request failed after 3 attempts: {last_error}")
+            if attempt < REQUEST_ATTEMPTS - 1:
+                time.sleep(RETRY_BACKOFF_SECONDS)
+    raise RuntimeError(
+        f"upstream request failed after {REQUEST_ATTEMPTS} attempts: {last_error}"
+    )
 
 
 def resolve_latest(source: dict[str, Any]) -> str:

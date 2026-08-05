@@ -94,6 +94,26 @@ class DependencyAuditTests(unittest.TestCase):
         self.assertEqual(request.get_header("Authorization"), "Bearer " + token)
         self.assertEqual(payload, {"tag_name": "v1.0.0"})
 
+    def test_fetch_json_bounds_retries_and_timeouts(self):
+        error = check_dependencies.urllib.error.URLError("unavailable")
+        with (
+            mock.patch.object(
+                check_dependencies.urllib.request,
+                "urlopen",
+                side_effect=error,
+            ) as urlopen,
+            mock.patch.object(check_dependencies.time, "sleep") as sleep,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "after 2 attempts"):
+                check_dependencies.fetch_json("https://example.com/versions.json")
+
+        self.assertEqual(urlopen.call_count, check_dependencies.REQUEST_ATTEMPTS)
+        self.assertEqual(
+            [call.kwargs["timeout"] for call in urlopen.call_args_list],
+            [check_dependencies.REQUEST_TIMEOUT_SECONDS] * 2,
+        )
+        sleep.assert_called_once_with(check_dependencies.RETRY_BACKOFF_SECONDS)
+
 
 if __name__ == "__main__":
     unittest.main()
