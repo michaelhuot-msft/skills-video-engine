@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ShellCheck
+        run: shellcheck scripts/smoke_test.sh
+      - name: Build image
+        run: docker build --platform linux/amd64 -t explainer-video-engine:test .
+      - name: Run smoke test
+        run: bash scripts/smoke_test.sh
