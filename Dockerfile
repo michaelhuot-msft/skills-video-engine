@@ -13,8 +13,8 @@ ARG KOKORO_MODEL_REVISION=f3ff3571791e39611d31c381e3a41a3af07b4987
 
 LABEL org.opencontainers.image.title="Skills Video Engine"
 LABEL org.opencontainers.image.description="Shared HyperFrames, Kokoro TTS, and FFmpeg generation engine for video skills"
-LABEL org.opencontainers.image.source="https://github.com/michaelhuot-msft/skills-video-engine"
-LABEL org.opencontainers.image.documentation="https://github.com/michaelhuot-msft/skills-video-engine#readme"
+LABEL org.opencontainers.image.source="https://github.com/mhuot/skills-video-engine"
+LABEL org.opencontainers.image.documentation="https://github.com/mhuot/skills-video-engine#readme"
 LABEL org.opencontainers.image.licenses="MIT"
 
 COPY --from=uv /uv /uvx /usr/local/bin/
