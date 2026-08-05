@@ -25,7 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Run ShellCheck
-        run: shellcheck scripts/smoke_test.sh
+        run: shellcheck scripts/*.sh
+      - name: Test dependency manifest
+        run: python -m unittest discover -s scripts -p "test_*.py"
       - name: Build image
         run: docker build --platform "${{ matrix.platform }}" -t "skills-video-engine:test-${{ matrix.arch }}" .
       - name: Run smoke test

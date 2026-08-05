@@ -1,0 +1,40 @@
+name: Dependency audit
+
+on:
+  schedule:
+    - cron: "23 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: dependency-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Test dependency manifest
+        run: python -m unittest discover -s scripts -p "test_*.py"
+      - id: audit
+        name: Check upstream versions
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/check_dependencies.py \
+            --output dependency-report.md \
+            --json-output dependency-report.json \
+            --allow-drift
+      - name: Create or update tracking issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/update_dependency_issue.sh
+      - name: Fail on audit errors
+        if: steps.audit.outcome == 'failure'
+        run: exit 1
