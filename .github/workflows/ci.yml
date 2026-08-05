@@ -11,12 +11,22 @@ permissions:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            platform: linux/amd64
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            platform: linux/arm64
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run ShellCheck
         run: shellcheck scripts/smoke_test.sh
       - name: Build image
-        run: docker build --platform linux/amd64 -t skills-video-engine:test .
+        run: docker build --platform "${{ matrix.platform }}" -t "skills-video-engine:test-${{ matrix.arch }}" .
       - name: Run smoke test
-        run: bash scripts/smoke_test.sh
+        run: bash scripts/smoke_test.sh "skills-video-engine:test-${{ matrix.arch }}"

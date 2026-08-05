@@ -8,6 +8,7 @@ ARG TARGETARCH
 ARG HYPERFRAMES_VERSION=0.7.82
 ARG CHROME_HEADLESS_SHELL_VERSION=148.0.7778.167
 ARG PUPPETEER_BROWSERS_VERSION=2.13.0
+ARG PLAYWRIGHT_VERSION=1.61.1
 ARG KOKORO_VERSION=0.9.4
 ARG KOKORO_MODEL_REVISION=f3ff3571791e39611d31c381e3a41a3af07b4987
 
@@ -27,12 +28,13 @@ ENV DEBIAN_FRONTEND=noninteractive \
     XDG_CACHE_HOME=/tmp/.cache \
     HF_HOME=/opt/huggingface \
     HF_HUB_OFFLINE=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
     PRODUCER_HEADLESS_SHELL_PATH=/usr/local/bin/chrome-headless-shell \
     CONTAINER=true
 
-RUN test "${TARGETARCH}" = "amd64" \
+RUN case "${TARGETARCH}" in amd64|arm64) ;; *) echo "Unsupported architecture: ${TARGETARCH}" >&2; exit 1;; esac \
     && sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -73,10 +75,15 @@ RUN test "${TARGETARCH}" = "amd64" \
     && rm -rf /var/lib/apt/lists/* \
     && fc-cache -fv
 
-RUN npx --yes "@puppeteer/browsers@${PUPPETEER_BROWSERS_VERSION}" install \
-      "chrome-headless-shell@${CHROME_HEADLESS_SHELL_VERSION}" \
-      --path /opt/chrome \
-    && chrome_path="$(find /opt/chrome -name chrome-headless-shell -type f | head -1)" \
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+      npx --yes "@puppeteer/browsers@${PUPPETEER_BROWSERS_VERSION}" install \
+        "chrome-headless-shell@${CHROME_HEADLESS_SHELL_VERSION}" \
+        --path /opt/chrome; \
+    else \
+      npx --yes "playwright-core@${PLAYWRIGHT_VERSION}" install chromium-headless-shell; \
+    fi \
+    && chrome_path="$(find /opt/chrome /opt/ms-playwright \
+      \( -name chrome-headless-shell -o -name headless_shell \) -type f 2>/dev/null | head -1)" \
     && test -n "${chrome_path}" \
     && ln -s "${chrome_path}" /usr/local/bin/chrome-headless-shell \
     && npm install --global "hyperframes@${HYPERFRAMES_VERSION}" \
