@@ -21,7 +21,7 @@ complete Kokoro and HyperFrames pipeline is validated on that architecture.
 ## Pull
 
 ```bash
-docker pull ghcr.io/michaelhuot-msft/skills-video-engine:latest
+docker pull ghcr.io/mhuot/skills-video-engine:latest
 ```
 
 For repeatable production, use a version tag or image digest instead of
@@ -35,7 +35,7 @@ Mount an explainer-video project and invoke the underlying tools directly:
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$PWD:/project" \
-  ghcr.io/michaelhuot-msft/skills-video-engine:latest \
+  ghcr.io/mhuot/skills-video-engine:latest \
   python tools/tts_generate.py
 ```
 
@@ -43,7 +43,7 @@ docker run --rm \
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$PWD:/project" \
-  ghcr.io/michaelhuot-msft/skills-video-engine:latest \
+  ghcr.io/mhuot/skills-video-engine:latest \
   hyperframes render video --output production/renders/master.mp4
 ```
 
@@ -51,7 +51,7 @@ docker run --rm \
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$PWD:/project" \
-  ghcr.io/michaelhuot-msft/skills-video-engine:latest \
+  ghcr.io/mhuot/skills-video-engine:latest \
   ffprobe -v error -show_format -show_streams \
   production/renders/master.mp4
 ```
