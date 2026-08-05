@@ -89,7 +89,7 @@ RUN uv python install 3.12 \
       huggingface-hub \
       numpy \
       soundfile \
-    && HF_HUB_OFFLINE=0 python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='hexgrad/Kokoro-82M', revision='${KOKORO_MODEL_REVISION}')" \
+    && HF_HUB_OFFLINE=0 python -c "from pathlib import Path; from huggingface_hub import snapshot_download; path = snapshot_download(repo_id='hexgrad/Kokoro-82M', revision='main'); assert Path(path).name == '${KOKORO_MODEL_REVISION}', f'unexpected Kokoro revision: {Path(path).name}'" \
     && python -c "from kokoro import KPipeline; KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')"
 
 WORKDIR /project
