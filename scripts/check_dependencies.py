@@ -55,8 +55,9 @@ def fetch_json(url: str) -> Any:
         "Accept": "application/json",
         "User-Agent": "skills-video-engine-dependency-audit",
     }
-    if "api.github.com" in url and os.environ.get("GITHUB_TOKEN"):
-        headers["Authorization"] = f"Bearer {os.environ['GITHUB_TOKEN']}"
+    github_token = os.environ.get("GITHUB_TOKEN")
+    if "api.github.com" in url and github_token:
+        headers["Authorization"] = "Bearer " + github_token
         headers["X-GitHub-Api-Version"] = "2022-11-28"
     request = urllib.request.Request(url, headers=headers)
     last_error: OSError | urllib.error.URLError | None = None

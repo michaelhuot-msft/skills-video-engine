@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Tests for dependency manifest parsing and drift detection."""
 
+import io
 import json
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -72,6 +74,25 @@ class DependencyAuditTests(unittest.TestCase):
     def test_manifest_is_valid_json(self):
         with (ROOT / "dependencies.json").open(encoding="utf-8") as handle:
             self.assertEqual(json.load(handle)["schema_version"], 1)
+
+    def test_github_request_uses_environment_token_as_bearer(self):
+        token = "unit-test-token"
+        response = io.BytesIO(b'{"tag_name": "v1.0.0"}')
+        with (
+            mock.patch.dict(os.environ, {"GITHUB_TOKEN": token}),
+            mock.patch.object(
+                check_dependencies.urllib.request,
+                "urlopen",
+                return_value=response,
+            ) as urlopen,
+        ):
+            payload = check_dependencies.fetch_json(
+                "https://api.github.com/repos/example/project/releases/latest"
+            )
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.get_header("Authorization"), "Bearer " + token)
+        self.assertEqual(payload, {"tag_name": "v1.0.0"})
 
 
 if __name__ == "__main__":
