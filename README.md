@@ -13,10 +13,8 @@ promo-video:
 After the image is pulled, generation can run without network access. Project
 files remain on the host and are mounted into `/project`.
 
-## Status
-
-The initial image is Linux AMD64 only. ARM64 support will be added after the
-complete Kokoro and HyperFrames pipeline is validated on that architecture.
+The image supports Linux AMD64 and ARM64. Docker Desktop on Apple Silicon
+selects the native ARM64 image automatically.
 
 ## Pull
 
@@ -62,8 +60,7 @@ generated files owned by the current host user.
 ## Build locally
 
 ```bash
-docker build --platform linux/amd64 \
-  -t skills-video-engine:local .
+docker build -t skills-video-engine:local .
 bash scripts/smoke_test.sh skills-video-engine:local
 ```
 
