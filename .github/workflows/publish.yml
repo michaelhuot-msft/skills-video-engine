@@ -13,7 +13,7 @@ permissions:
   attestations: write
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/explainer-video-engine
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/skills-video-engine
 
 jobs:
   publish:

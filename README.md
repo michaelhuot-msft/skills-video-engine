@@ -1,7 +1,9 @@
-# Explainer Video Engine
+# Skills Video Engine
 
-Public OCI image containing the generation toolchain used by the
-[explainer-video skill](https://github.com/mhuot/explainer-video-skill):
+Public OCI image containing the shared generation toolchain for agent video
+skills, including
+[explainer-video](https://github.com/mhuot/explainer-video-skill) and
+promo-video:
 
 - HyperFrames for deterministic HTML/CSS/JavaScript video rendering
 - Kokoro-82M for local narration
@@ -19,7 +21,7 @@ complete Kokoro and HyperFrames pipeline is validated on that architecture.
 ## Pull
 
 ```bash
-docker pull ghcr.io/michaelhuot-msft/explainer-video-engine:latest
+docker pull ghcr.io/michaelhuot-msft/skills-video-engine:latest
 ```
 
 For repeatable production, use a version tag or image digest instead of
@@ -33,7 +35,7 @@ Mount an explainer-video project and invoke the underlying tools directly:
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$PWD:/project" \
-  ghcr.io/michaelhuot-msft/explainer-video-engine:latest \
+  ghcr.io/michaelhuot-msft/skills-video-engine:latest \
   python tools/tts_generate.py
 ```
 
@@ -41,7 +43,7 @@ docker run --rm \
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$PWD:/project" \
-  ghcr.io/michaelhuot-msft/explainer-video-engine:latest \
+  ghcr.io/michaelhuot-msft/skills-video-engine:latest \
   hyperframes render video --output production/renders/master.mp4
 ```
 
@@ -49,7 +51,7 @@ docker run --rm \
 docker run --rm \
   --user "$(id -u):$(id -g)" \
   -v "$PWD:/project" \
-  ghcr.io/michaelhuot-msft/explainer-video-engine:latest \
+  ghcr.io/michaelhuot-msft/skills-video-engine:latest \
   ffprobe -v error -show_format -show_streams \
   production/renders/master.mp4
 ```
@@ -61,8 +63,8 @@ generated files owned by the current host user.
 
 ```bash
 docker build --platform linux/amd64 \
-  -t explainer-video-engine:local .
-bash scripts/smoke_test.sh explainer-video-engine:local
+  -t skills-video-engine:local .
+bash scripts/smoke_test.sh skills-video-engine:local
 ```
 
 The build downloads and caches the pinned Kokoro model revision. It also
