@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM ghcr.io/astral-sh/uv:0.8.14 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.1 AS uv
 
 FROM node:22-bookworm-slim
 
