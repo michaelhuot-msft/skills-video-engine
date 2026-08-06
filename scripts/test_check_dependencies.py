@@ -34,10 +34,10 @@ class DependencyAuditTests(unittest.TestCase):
             "actions-checkout": "7",
             "docker-setup-buildx-action": "3",
             "docker-login-action": "3",
-            "docker-build-push-action": "6",
+            "docker-build-push-action": "7",
             "actions-upload-artifact": "4",
-            "actions-download-artifact": "5",
-            "docker-metadata-action": "5",
+            "actions-download-artifact": "8",
+            "docker-metadata-action": "6",
         }
         actual = {
             dependency["id"]: check_dependencies.extract_pin(ROOT, dependency)
