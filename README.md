@@ -107,7 +107,9 @@ docker run --rm -v "${PWD}:/project" ghcr.io/mhuot/skills-video-engine:latest hy
 
 Notes / troubleshooting:
 
-- Run `bash scripts/smoke_test.sh` inside a Linux environment (WSL/Git Bash) to reproduce CI checks.
+- From a `skills-video-engine` checkout, run
+  `bash scripts/smoke_test.sh ghcr.io/mhuot/skills-video-engine:latest`
+  inside WSL to exercise the pulled image.
 - If you see permission issues, run `chown` from WSL or re-run container without
   `--user` and fix ownership afterwards.
 - Ensure Docker Desktop is configured with enough CPU and RAM for headless
