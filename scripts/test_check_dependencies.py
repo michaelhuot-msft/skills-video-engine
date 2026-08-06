@@ -21,7 +21,7 @@ class DependencyAuditTests(unittest.TestCase):
 
     def test_current_pins_are_parsed(self):
         expected = {
-            "uv": "0.8.14",
+            "uv": "0.12.1",
             "node": "22",
             "hyperframes": "0.7.82",
             "chrome-headless-shell": "148.0.7778.167",
