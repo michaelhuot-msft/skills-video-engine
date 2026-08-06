@@ -25,8 +25,9 @@ Primary intent: produce and validate the OCI image and bundled tooling.
     - docker run --rm skills-video-engine:local sh -c 'test -n "$(find /usr/src/third-party -maxdepth 1 -type d -name "ffmpeg-*")"'
     - docker run --rm skills-video-engine:local sh -c 'test -n "$(find /usr/src/third-party -maxdepth 1 -type d -name "x264-*")"'
 
-- CI lint step (used in GitHub Actions):
-  - shellcheck scripts/smoke_test.sh
+- CI checks used in GitHub Actions:
+  - shellcheck scripts/*.sh
+  - python -m unittest discover -s scripts -p "test_*.py"
 
 Notes:
 - CI runs a matrix build for linux/amd64 and linux/arm64 and executes the smoke test inside each produced image.
@@ -68,7 +69,7 @@ Notes:
   - For amd64 the build uses `@puppeteer/browsers` to install chrome-headless-shell; for arm64 it installs playwright's chromium-headless-shell. The Dockerfile looks for either `chrome-headless-shell` or `headless_shell` and symlinks the found binary to `/usr/local/bin/chrome-headless-shell`.
 
 - CI expectations:
-  - CI runs shellcheck on the smoke test and builds both amd64 and arm64 images, then runs the smoke test against each image. Keep scripts POSIX-compliant and shellcheck-clean.
+  - CI runs ShellCheck on every `scripts/*.sh` file and builds both amd64 and arm64 images, then runs the smoke test against each image. Keep scripts POSIX-compliant and ShellCheck-clean.
 
 - Image usage convention:
   - When running the image locally, prefer using `--user "$(id -u):$(id -g)"` and mounting the project at `-v "$PWD:/project"` so generated files maintain host ownership.
@@ -97,7 +98,17 @@ Notes:
 - Always run `docker build` and the smoke tests locally for any Dockerfile edit. Use the smoke_test.sh script to validate the specific runtime expectations.
 - Be cautious about changing pinned versions (Kokoro revision, HyperFrames, browsers). If changing, ensure the Dockerfile still validates downloaded artifacts and update tests accordingly.
 - Preserve multi-arch buildx and cache settings unless replacing them with an equivalent that keeps reproducible builds and cross-arch caching.
-- For shell edits, fix shellcheck warnings locally; CI enforces shellcheck for the smoke script.
+- For shell edits, fix ShellCheck warnings locally; CI checks every
+  `scripts/*.sh` file.
+
+---
+
+<!-- mermaid-ai-skills:start -->
+## Mermaid diagrams
+
+When the user asks to create, edit, or visualize a diagram, follow the
+instructions in `.github/instructions/mermaid.instructions.md`.
+<!-- mermaid-ai-skills:end -->
 
 ---
 
