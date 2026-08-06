@@ -32,7 +32,7 @@ class DependencyAuditTests(unittest.TestCase):
             "kokoro-onnx": "0.5.0",
             "kokoro-onnx-model": "1.0",
             "actions-checkout": "5",
-            "docker-setup-buildx-action": "3",
+            "docker-setup-buildx-action": "4",
             "docker-login-action": "3",
             "docker-build-push-action": "6",
             "actions-upload-artifact": "4",
