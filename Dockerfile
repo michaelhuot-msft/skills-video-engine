@@ -11,12 +11,19 @@ ARG PUPPETEER_BROWSERS_VERSION=2.13.0
 ARG PLAYWRIGHT_VERSION=1.61.1
 ARG KOKORO_VERSION=0.9.4
 ARG KOKORO_MODEL_REVISION=f3ff3571791e39611d31c381e3a41a3af07b4987
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ARG PYPI_INDEX=https://pypi.org/simple
 
 LABEL org.opencontainers.image.title="Skills Video Engine"
 LABEL org.opencontainers.image.description="Shared HyperFrames, Kokoro TTS, and FFmpeg generation engine for video skills"
 LABEL org.opencontainers.image.source="https://github.com/mhuot/skills-video-engine"
 LABEL org.opencontainers.image.documentation="https://github.com/mhuot/skills-video-engine#readme"
 LABEL org.opencontainers.image.licenses="MIT"
+LABEL io.github.mhuot.skills-video-engine.hyperframes.version="${HYPERFRAMES_VERSION}"
+LABEL io.github.mhuot.skills-video-engine.kokoro.version="${KOKORO_VERSION}"
+LABEL io.github.mhuot.skills-video-engine.kokoro.model-revision="${KOKORO_MODEL_REVISION}"
+LABEL io.github.mhuot.skills-video-engine.browser.amd64.chrome-headless-shell.version="${CHROME_HEADLESS_SHELL_VERSION}"
+LABEL io.github.mhuot.skills-video-engine.browser.arm64.playwright.version="${PLAYWRIGHT_VERSION}"
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
@@ -76,28 +83,32 @@ RUN case "${TARGETARCH}" in amd64|arm64) ;; *) echo "Unsupported architecture: $
     && fc-cache -fv
 
 RUN if [ "${TARGETARCH}" = "amd64" ]; then \
-      npx --yes "@puppeteer/browsers@${PUPPETEER_BROWSERS_VERSION}" install \
+      npm_config_registry="${NPM_REGISTRY}" npx --yes "@puppeteer/browsers@${PUPPETEER_BROWSERS_VERSION}" install \
         "chrome-headless-shell@${CHROME_HEADLESS_SHELL_VERSION}" \
         --path /opt/chrome; \
     else \
-      npx --yes "playwright-core@${PLAYWRIGHT_VERSION}" install chromium-headless-shell; \
+      npm_config_registry="${NPM_REGISTRY}" npx --yes "playwright-core@${PLAYWRIGHT_VERSION}" install chromium-headless-shell; \
     fi \
     && chrome_path="$(find /opt/chrome /opt/ms-playwright \
       \( -name chrome-headless-shell -o -name headless_shell \) -type f 2>/dev/null | head -1)" \
     && test -n "${chrome_path}" \
     && ln -s "${chrome_path}" /usr/local/bin/chrome-headless-shell \
-    && npm install --global "hyperframes@${HYPERFRAMES_VERSION}" \
+    && npm install --global "hyperframes@${HYPERFRAMES_VERSION}" --registry="${NPM_REGISTRY}" \
     && npm cache clean --force
 
 RUN uv python install 3.12 \
     && uv venv --python 3.12 /opt/venv \
-    && uv pip install --python /opt/venv/bin/python \
+    && UV_DEFAULT_INDEX="${PYPI_INDEX}" uv pip install --python /opt/venv/bin/python \
       "kokoro==${KOKORO_VERSION}" \
       huggingface-hub \
       numpy \
       soundfile \
     && HF_HUB_OFFLINE=0 python -c "from pathlib import Path; from huggingface_hub import snapshot_download; path = snapshot_download(repo_id='hexgrad/Kokoro-82M', revision='main'); assert Path(path).name == '${KOKORO_MODEL_REVISION}', f'unexpected Kokoro revision: {Path(path).name}'" \
     && python -c "from kokoro import KPipeline; KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')"
+
+RUN rm -rf /tmp/.cache /tmp/.config /tmp/.local \
+    && mkdir -p /tmp/.cache /tmp/.config /tmp/.local \
+    && chmod 1777 /tmp/.cache /tmp/.config /tmp/.local
 
 WORKDIR /project
 
