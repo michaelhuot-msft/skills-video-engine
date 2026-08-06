@@ -130,6 +130,39 @@
       }
     },
     {
+      "id": "kokoro-onnx",
+      "name": "kokoro-onnx Python package",
+      "pins": [
+        {
+          "file": "Dockerfile",
+          "pattern": "^ARG KOKORO_ONNX_VERSION=(?P<version>.+)$"
+        }
+      ],
+      "source": {
+        "type": "json",
+        "url": "https://pypi.org/pypi/kokoro-onnx/json",
+        "path": ["info", "version"],
+        "release_url": "https://pypi.org/project/kokoro-onnx/"
+      }
+    },
+    {
+      "id": "kokoro-onnx-model",
+      "name": "Kokoro ONNX model files",
+      "pins": [
+        {
+          "file": "Dockerfile",
+          "pattern": "^ARG KOKORO_ONNX_MODEL_VERSION=(?P<version>.+)$"
+        }
+      ],
+      "source": {
+        "type": "json",
+        "url": "https://api.github.com/repos/thewh1teagle/kokoro-onnx/releases/tags/model-files-v1.0",
+        "path": ["tag_name"],
+        "strip_prefix": "model-files-v",
+        "release_url": "https://github.com/thewh1teagle/kokoro-onnx/releases/tag/model-files-v1.0"
+      }
+    },
+    {
       "id": "actions-checkout",
       "name": "actions/checkout",
       "pins": [
