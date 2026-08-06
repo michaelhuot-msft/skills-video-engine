@@ -34,7 +34,7 @@ class DependencyAuditTests(unittest.TestCase):
             "actions-checkout": "5",
             "docker-setup-buildx-action": "3",
             "docker-login-action": "3",
-            "docker-build-push-action": "6",
+            "docker-build-push-action": "7",
             "actions-upload-artifact": "4",
             "actions-download-artifact": "8",
             "docker-metadata-action": "6",
