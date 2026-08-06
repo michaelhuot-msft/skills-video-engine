@@ -21,8 +21,8 @@ class DependencyAuditTests(unittest.TestCase):
 
     def test_current_pins_are_parsed(self):
         expected = {
-            "uv": "0.8.14",
-            "node": "25",
+            "uv": "0.12.1",
+            "node": "24",
             "hyperframes": "0.7.82",
             "chrome-headless-shell": "148.0.7778.167",
             "puppeteer-browsers": "2.13.0",
@@ -31,13 +31,13 @@ class DependencyAuditTests(unittest.TestCase):
             "kokoro-model": "f3ff3571791e39611d31c381e3a41a3af07b4987",
             "kokoro-onnx": "0.5.0",
             "kokoro-onnx-model": "1.0",
-            "actions-checkout": "5",
-            "docker-setup-buildx-action": "3",
+            "actions-checkout": "7",
+            "docker-setup-buildx-action": "4",
             "docker-login-action": "3",
-            "docker-build-push-action": "6",
+            "docker-build-push-action": "7",
             "actions-upload-artifact": "4",
-            "actions-download-artifact": "5",
-            "docker-metadata-action": "5",
+            "actions-download-artifact": "8",
+            "docker-metadata-action": "6",
         }
         actual = {
             dependency["id"]: check_dependencies.extract_pin(ROOT, dependency)
@@ -51,7 +51,7 @@ class DependencyAuditTests(unittest.TestCase):
             for dependency in self.manifest["dependencies"]
         }
         latest["hyperframes"] = "99.0.0"
-        latest["actions-checkout"] = "5.2.1"
+        latest["actions-checkout"] = "7.0.1"
 
         def fake_latest(source):
             dependency = next(

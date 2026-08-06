@@ -23,7 +23,7 @@ jobs:
             arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Run ShellCheck
         run: shellcheck scripts/*.sh
       - name: Test dependency manifest
