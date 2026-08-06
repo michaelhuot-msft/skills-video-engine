@@ -15,12 +15,19 @@ ARG KOKORO_ONNX_VERSION=0.5.0
 ARG KOKORO_ONNX_MODEL_VERSION=1.0
 ARG KOKORO_ONNX_MODEL_SHA256=7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5
 ARG KOKORO_ONNX_VOICES_SHA256=bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ARG PYPI_INDEX=https://pypi.org/simple
 
 LABEL org.opencontainers.image.title="Skills Video Engine"
 LABEL org.opencontainers.image.description="Shared HyperFrames, Kokoro TTS, and FFmpeg generation engine for video skills"
 LABEL org.opencontainers.image.source="https://github.com/mhuot/skills-video-engine"
 LABEL org.opencontainers.image.documentation="https://github.com/mhuot/skills-video-engine#readme"
 LABEL org.opencontainers.image.licenses="MIT"
+LABEL io.github.mhuot.skills-video-engine.hyperframes.version="${HYPERFRAMES_VERSION}"
+LABEL io.github.mhuot.skills-video-engine.kokoro.version="${KOKORO_VERSION}"
+LABEL io.github.mhuot.skills-video-engine.kokoro.model-revision="${KOKORO_MODEL_REVISION}"
+LABEL io.github.mhuot.skills-video-engine.browser.amd64.chrome-headless-shell.version="${CHROME_HEADLESS_SHELL_VERSION}"
+LABEL io.github.mhuot.skills-video-engine.browser.arm64.playwright.version="${PLAYWRIGHT_VERSION}"
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
@@ -82,22 +89,22 @@ RUN case "${TARGETARCH}" in amd64|arm64) ;; *) echo "Unsupported architecture: $
     && fc-cache -fv
 
 RUN if [ "${TARGETARCH}" = "amd64" ]; then \
-      npx --yes "@puppeteer/browsers@${PUPPETEER_BROWSERS_VERSION}" install \
+      npm_config_registry="${NPM_REGISTRY}" npx --yes "@puppeteer/browsers@${PUPPETEER_BROWSERS_VERSION}" install \
         "chrome-headless-shell@${CHROME_HEADLESS_SHELL_VERSION}" \
         --path /opt/chrome; \
     else \
-      npx --yes "playwright-core@${PLAYWRIGHT_VERSION}" install chromium-headless-shell; \
+      npm_config_registry="${NPM_REGISTRY}" npx --yes "playwright-core@${PLAYWRIGHT_VERSION}" install chromium-headless-shell; \
     fi \
     && chrome_path="$(find /opt/chrome /opt/ms-playwright \
       \( -name chrome-headless-shell -o -name headless_shell \) -type f 2>/dev/null | head -1)" \
     && test -n "${chrome_path}" \
     && ln -s "${chrome_path}" /usr/local/bin/chrome-headless-shell \
-    && npm install --global "hyperframes@${HYPERFRAMES_VERSION}" \
+    && npm install --global "hyperframes@${HYPERFRAMES_VERSION}" --registry="${NPM_REGISTRY}" \
     && npm cache clean --force
 
 RUN uv python install 3.12 \
     && uv venv --python 3.12 /opt/venv \
-    && uv pip install --python /opt/venv/bin/python \
+    && UV_DEFAULT_INDEX="${PYPI_INDEX}" uv pip install --python /opt/venv/bin/python \
       "kokoro==${KOKORO_VERSION}" \
       "kokoro-onnx==${KOKORO_ONNX_VERSION}" \
       huggingface-hub \
@@ -120,6 +127,10 @@ RUN uv python install 3.12 \
     && test -s /tmp/hyperframes-tts-build-check.wav \
     && rm /tmp/hyperframes-tts-build-check.wav \
     && chmod 1777 /tmp/.cache /tmp/.cache/hyperframes /tmp/.cache/hyperframes/tts
+
+RUN rm -rf /tmp/.cache/uv /tmp/.config /tmp/.local \
+    && mkdir -p /tmp/.cache /tmp/.config /tmp/.local \
+    && chmod 1777 /tmp/.cache /tmp/.config /tmp/.local
 
 WORKDIR /project
 

@@ -32,3 +32,5 @@ jobs:
         run: docker build --platform "${{ matrix.platform }}" -t "skills-video-engine:test-${{ matrix.arch }}" .
       - name: Run smoke test
         run: bash scripts/smoke_test.sh "skills-video-engine:test-${{ matrix.arch }}"
+      - name: Run mounted-project end-to-end test
+        run: bash scripts/e2e_test.sh "skills-video-engine:test-${{ matrix.arch }}"

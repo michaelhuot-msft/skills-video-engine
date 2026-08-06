@@ -14,12 +14,16 @@ Primary intent: produce and validate the OCI image and bundled tooling.
 - Run the repository smoke test (full quick validation):
   - bash scripts/smoke_test.sh skills-video-engine:local
 
+- Run the mounted-project integration test:
+  - bash scripts/e2e_test.sh skills-video-engine:local
+
 - Run individual smoke-test checks (useful for focused validation):
   - docker run --rm skills-video-engine:local hyperframes --version
   - docker run --rm skills-video-engine:local python --version
   - docker run --rm skills-video-engine:local ffmpeg -hide_banner -version
   - docker run --rm skills-video-engine:local ffprobe -hide_banner -version
   - docker run --rm skills-video-engine:local chrome-headless-shell --version
+  - docker run --rm skills-video-engine:local ffmpeg -hide_banner -encoders | grep -q libx264
   - docker run --rm skills-video-engine:local python -c "from kokoro import KPipeline; KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M'); print('Kokoro model ready')"
   - Verify third-party sources exist in the image:
     - docker run --rm skills-video-engine:local sh -c 'test -n "$(find /usr/src/third-party -maxdepth 1 -type d -name "ffmpeg-*")"'
@@ -30,7 +34,9 @@ Primary intent: produce and validate the OCI image and bundled tooling.
   - python -m unittest discover -s scripts -p "test_*.py"
 
 Notes:
-- CI runs a matrix build for linux/amd64 and linux/arm64 and executes the smoke test inside each produced image.
+- CI runs a matrix build for linux/amd64 and linux/arm64 and executes both the
+  component smoke test and mounted-project E2E test inside each produced
+  image.
 - Published images include SBOM and build-provenance metadata.
 
 ---
@@ -49,6 +55,8 @@ Notes:
   - Host project files are mounted at `/project` and tools are invoked from there (WORKDIR /project).
   - Container can run fully offline after the model + artifacts are baked into the image (HF_HUB_OFFLINE=1 at runtime).
   - CMD defaults to `hyperframes --help`; typical usage mounts the host project and runs hyperframes, python TTS scripts, or ffprobe inside the container.
+  - Arbitrary numeric UIDs must be able to use runtime cache directories,
+    Kokoro, Chromium, and mounted-project outputs without root.
 
 - Multi-arch & release:
   - Buildx is used to build and publish multi-architecture images (amd64 and arm64) with cache-from/cache-to and multi-tagging.
@@ -86,6 +94,10 @@ Notes:
 
 - Dockerfile — central build recipe and provenance steps (Kokoro snapshot, third-party sources).
 - scripts/smoke_test.sh — authoritative runtime checks used by CI.
+- scripts/e2e_test.sh — mounted-project narration, validation, snapshot,
+  render, FFprobe, and ownership integration test.
+- tests/fixtures/minimal-project/ — deterministic E2E source fixture; GSAP is
+  downloaded only into the temporary CI project.
 - .github/workflows/ci.yml — matrix build & smoke-test steps.
 - .github/workflows/publish.yml — buildx publish pipeline, SBOM, provenance and tagging rules.
 - README.md — usage examples showing how to run the image with /project mounts.
@@ -95,7 +107,8 @@ Notes:
 ## Guidance for Copilot sessions working in this repo
 
 - Focus on the Dockerfile, smoke tests, and workflows for any change that affects runtime tooling or reproducibility.
-- Always run `docker build` and the smoke tests locally for any Dockerfile edit. Use the smoke_test.sh script to validate the specific runtime expectations.
+- Always run `docker build`, `scripts/smoke_test.sh`, and
+  `scripts/e2e_test.sh` locally for any Dockerfile or runtime-contract edit.
 - Be cautious about changing pinned versions (Kokoro revision, HyperFrames, browsers). If changing, ensure the Dockerfile still validates downloaded artifacts and update tests accordingly.
 - Preserve multi-arch buildx and cache settings unless replacing them with an equivalent that keeps reproducible builds and cross-arch caching.
 - For shell edits, fix ShellCheck warnings locally; CI checks every
