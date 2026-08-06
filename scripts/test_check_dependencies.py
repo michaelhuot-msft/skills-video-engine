@@ -36,7 +36,7 @@ class DependencyAuditTests(unittest.TestCase):
             "docker-login-action": "3",
             "docker-build-push-action": "6",
             "actions-upload-artifact": "4",
-            "actions-download-artifact": "5",
+            "actions-download-artifact": "8",
             "docker-metadata-action": "6",
         }
         actual = {
