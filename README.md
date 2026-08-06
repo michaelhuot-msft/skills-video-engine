@@ -78,6 +78,41 @@ docker run --rm \
 On SELinux hosts, append `:Z` to the volume mount. The `--user` option keeps
 generated files owned by the current host user.
 
+### Windows / WSL2 (ARM) usage
+
+Recommended: run from WSL2 (Ubuntu) for best compatibility with POSIX paths,
+UID mapping, and bash scripts. Keep your explainer-video project inside the
+WSL filesystem (e.g. `~/explainer-video-skill`) to avoid Windows/WSL path and
+permission issues.
+
+From WSL2:
+
+```bash
+cd ~/explainer-video-skill
+docker pull ghcr.io/mhuot/skills-video-engine:latest
+# TTS generation (preserves file ownership)
+docker run --rm -v "$PWD:/project" --user "$(id -u):$(id -g)" ghcr.io/mhuot/skills-video-engine:latest python tools/tts_generate.py
+# Render video (preserves file ownership)
+docker run --rm -v "$PWD:/project" --user "$(id -u):$(id -g)" ghcr.io/mhuot/skills-video-engine:latest hyperframes render video --output production/renders/master.mp4
+```
+
+From PowerShell (less ideal):
+
+```powershell
+cd $env:USERPROFILE\explainer-video-skill
+docker pull ghcr.io/mhuot/skills-video-engine:latest
+# Files created by the container may be owned by root; chown from WSL or re-run without --user and fix ownership
+docker run --rm -v "${PWD}:/project" ghcr.io/mhuot/skills-video-engine:latest hyperframes --version
+```
+
+Notes / troubleshooting:
+
+- Run `bash scripts/smoke_test.sh` inside a Linux environment (WSL/Git Bash) to reproduce CI checks.
+- If you see permission issues, run `chown` from WSL or re-run container without
+  `--user` and fix ownership afterwards.
+- Ensure Docker Desktop is configured with enough CPU and RAM for headless
+  Chromium and model operations.
+
 ## Build locally
 
 ```bash
