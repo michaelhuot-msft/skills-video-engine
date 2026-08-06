@@ -12,6 +12,8 @@ docker run --rm "${image}" ffmpeg -hide_banner -encoders |
   grep libx264 >/dev/null
 docker run --rm --network none "${image}" python -c \
   "from kokoro import KPipeline; KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M'); print('Kokoro model ready')"
+docker run --rm --network none --user 10001:10001 "${image}" sh -c \
+  'hyperframes tts "Offline container smoke test" --output /tmp/hyperframes-tts-smoke.wav --json && test -s /tmp/hyperframes-tts-smoke.wav'
 docker run --rm "${image}" sh -c \
   'test -n "$(find /usr/src/third-party -maxdepth 1 -type d -name "ffmpeg-*")"'
 docker run --rm "${image}" sh -c \
