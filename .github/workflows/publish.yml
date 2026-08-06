@@ -51,6 +51,14 @@ jobs:
           sbom: true
           cache-from: type=gha,scope=${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+      - name: Test published image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          image="${IMAGE_NAME}@${IMAGE_DIGEST}"
+          docker pull "${image}"
+          bash scripts/smoke_test.sh "${image}"
+          bash scripts/e2e_test.sh "${image}"
       - name: Export digest
         run: |
           mkdir -p /tmp/digests

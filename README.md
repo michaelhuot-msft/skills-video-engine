@@ -2,8 +2,8 @@
 
 One portable production studio for agent video skills. This public OCI image
 packages the shared generation toolchain used by
-[explainer-video](https://github.com/mhuot/explainer-video-skill) and
-promo-video:
+[explainer-video](https://github.com/mhuot/explainer-video-skill) and future
+video skills such as promo-video:
 
 - HyperFrames for deterministic HTML/CSS/JavaScript video rendering
 - Kokoro-82M for local narration
@@ -40,75 +40,191 @@ Explainer production files and methodology are available in the
 ## Pull
 
 ```bash
-docker pull ghcr.io/mhuot/skills-video-engine:latest
+export SKILLS_VIDEO_ENGINE_IMAGE="${SKILLS_VIDEO_ENGINE_IMAGE:-ghcr.io/mhuot/skills-video-engine:0.2.1}"
+docker pull "$SKILLS_VIDEO_ENGINE_IMAGE"
 ```
 
-For repeatable production, use a version tag or image digest instead of
-`latest`.
+Production uses a released version or immutable digest, never `latest`.
+Developers can override `SKILLS_VIDEO_ENGINE_IMAGE` with a local tag or digest.
+Capture the resolved image in the production record:
+
+```bash
+docker image inspect "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  --format '{{if .RepoDigests}}{{index .RepoDigests 0}}{{else}}local:no-digest{{end}} {{.Id}}'
+```
+
+`local:no-digest` is suitable only for development.
+
+## Verify the environment
+
+```bash
+docker version
+docker run --rm "$SKILLS_VIDEO_ENGINE_IMAGE" hyperframes --version
+docker run --rm --network none "$SKILLS_VIDEO_ENGINE_IMAGE" python -c \
+  "from kokoro import KPipeline; KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M'); print('Kokoro model ready')"
+docker run --rm "$SKILLS_VIDEO_ENGINE_IMAGE" ffmpeg -hide_banner -encoders |
+  grep -q libx264
+docker run --rm "$SKILLS_VIDEO_ENGINE_IMAGE" chrome-headless-shell --version
+```
 
 ## Use
 
-Mount an explainer-video project and invoke the underlying tools directly:
+Run every command from the video-project root. The canonical runtime contract
+mounts that root at `/project`, uses an explicit working directory, preserves
+the underlying command's exit status, and disables runtime networking.
+
+Generate narration with a project-owned script:
 
 ```bash
 docker run --rm \
+  --init \
+  --shm-size=1g \
+  --network none \
   --user "$(id -u):$(id -g)" \
-  -v "$PWD:/project" \
-  ghcr.io/mhuot/skills-video-engine:latest \
+  --volume "$PWD:/project" \
+  --workdir /project \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
   python tools/tts_generate.py
 ```
 
+Run the HyperFrames validation ladder from `/project/video`:
+
 ```bash
 docker run --rm \
+  --init \
+  --shm-size=1g \
+  --network none \
   --user "$(id -u):$(id -g)" \
-  -v "$PWD:/project" \
-  ghcr.io/mhuot/skills-video-engine:latest \
-  hyperframes render video --output production/renders/master.mp4
+  --volume "$PWD:/project" \
+  --workdir /project/video \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  hyperframes lint
 ```
 
 ```bash
 docker run --rm \
+  --init \
+  --shm-size=1g \
+  --network none \
   --user "$(id -u):$(id -g)" \
-  -v "$PWD:/project" \
-  ghcr.io/mhuot/skills-video-engine:latest \
+  --volume "$PWD:/project" \
+  --workdir /project/video \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  hyperframes check
+```
+
+```bash
+docker run --rm \
+  --init \
+  --shm-size=1g \
+  --network none \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" \
+  --workdir /project/video \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  hyperframes snapshot --at 3,15,30 --output ../production/snapshots
+```
+
+```bash
+docker run --rm \
+  --init \
+  --shm-size=1g \
+  --network none \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" \
+  --workdir /project/video \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  hyperframes render --output ../production/renders/master.mp4
+```
+
+Inspect the result from the project root:
+
+```bash
+docker run --rm \
+  --init \
+  --network none \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" \
+  --workdir /project \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
   ffprobe -v error -show_format -show_streams \
   production/renders/master.mp4
 ```
 
+Measure narration and music levels:
+
+```bash
+docker run --rm \
+  --init \
+  --network none \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" \
+  --workdir /project \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  ffmpeg -i production/renders/master.mp4 \
+  -af volumedetect -f null -
+```
+
+Extract a review frame without exposing a host-absolute path to the container:
+
+```bash
+mkdir -p production/checkpoints/frames
+docker run --rm \
+  --init \
+  --network none \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" \
+  --workdir /project \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  ffmpeg -y -ss 3 -i production/renders/master.mp4 \
+  -frames:v 1 production/checkpoints/frames/qa-3.png
+```
+
 On SELinux hosts, append `:Z` to the volume mount. The `--user` option keeps
-generated files owned by the current host user.
+generated files owned by the current host user. Do not mount the Docker
+socket, home directory, credentials, or unrelated host paths.
+
+The `/project` workdir, documented commands on `PATH`, offline Kokoro cache,
+and mounted-project output behavior remain backward compatible within an
+engine minor release. Breaking this contract requires a new minor release.
 
 ### Windows / WSL2 (ARM) usage
 
 Recommended: run from WSL2 (Ubuntu) for best compatibility with POSIX paths,
 UID mapping, and bash scripts. Keep your explainer-video project inside the
-WSL filesystem (e.g. `~/explainer-video-skill`) to avoid Windows/WSL path and
+WSL filesystem (e.g. `~/my-explainer-video`) to avoid Windows/WSL path and
 permission issues.
 
 From WSL2:
 
 ```bash
-cd ~/explainer-video-skill
-docker pull ghcr.io/mhuot/skills-video-engine:latest
-# TTS generation (preserves file ownership)
-docker run --rm -v "$PWD:/project" --user "$(id -u):$(id -g)" ghcr.io/mhuot/skills-video-engine:latest python tools/tts_generate.py
-# Render video (preserves file ownership)
-docker run --rm -v "$PWD:/project" --user "$(id -u):$(id -g)" ghcr.io/mhuot/skills-video-engine:latest hyperframes render video --output production/renders/master.mp4
+cd ~/my-explainer-video
+export SKILLS_VIDEO_ENGINE_IMAGE="${SKILLS_VIDEO_ENGINE_IMAGE:-ghcr.io/mhuot/skills-video-engine:0.2.1}"
+docker pull "$SKILLS_VIDEO_ENGINE_IMAGE"
+docker run --rm --init --shm-size=1g --network none \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" --workdir /project \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" python tools/tts_generate.py
+docker run --rm --init --shm-size=1g --network none \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" --workdir /project/video \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  hyperframes render --output ../production/renders/master.mp4
 ```
 
 From PowerShell (less ideal):
 
 ```powershell
-cd $env:USERPROFILE\explainer-video-skill
-docker pull ghcr.io/mhuot/skills-video-engine:latest
+cd $env:USERPROFILE\my-explainer-video
+docker pull ghcr.io/mhuot/skills-video-engine:0.2.1
 # Files created by the container may be owned by root; chown from WSL or re-run without --user and fix ownership
-docker run --rm -v "${PWD}:/project" ghcr.io/mhuot/skills-video-engine:latest hyperframes --version
+docker run --rm ghcr.io/mhuot/skills-video-engine:0.2.1 hyperframes --version
 ```
 
 Notes / troubleshooting:
 
 - From a `skills-video-engine` checkout, run
-  `bash scripts/smoke_test.sh ghcr.io/mhuot/skills-video-engine:latest`
+  `bash scripts/smoke_test.sh ghcr.io/mhuot/skills-video-engine:0.2.1`
   inside WSL to exercise the pulled image.
 - If you see permission issues, run `chown` from WSL or re-run container without
   `--user` and fix ownership afterwards.
@@ -120,11 +236,30 @@ Notes / troubleshooting:
 ```bash
 docker build -t skills-video-engine:local .
 bash scripts/smoke_test.sh skills-video-engine:local
+bash scripts/e2e_test.sh skills-video-engine:local
 ```
 
 The build downloads and caches the pinned Kokoro model revision. It also
 includes the corresponding Debian source packages for FFmpeg and x264 under
 `/usr/src/third-party`.
+
+## Image footprint and component metadata
+
+The published `0.2.0` reference image is approximately:
+
+| Platform | Compressed layers | Local unpacked size |
+| --- | ---: | ---: |
+| Linux AMD64 | 4.18 GiB | Varies by container runtime |
+| Linux ARM64 | 4.08 GiB | 7.50 GiB on Docker Desktop for Apple Silicon |
+
+Image labels expose the pinned HyperFrames, Kokoro, model, AMD64
+Chrome-for-Testing, and ARM64 Playwright versions:
+
+```bash
+docker image inspect "$SKILLS_VIDEO_ENGINE_IMAGE" --format '{{json .Config.Labels}}'
+```
+
+Release notes record the image digest and measured sizes for each release.
 
 ## Releases
 
