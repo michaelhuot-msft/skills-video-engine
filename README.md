@@ -40,7 +40,7 @@ Explainer production files and methodology are available in the
 ## Pull
 
 ```bash
-export SKILLS_VIDEO_ENGINE_IMAGE="${SKILLS_VIDEO_ENGINE_IMAGE:-ghcr.io/mhuot/skills-video-engine:0.2.1}"
+export SKILLS_VIDEO_ENGINE_IMAGE="${SKILLS_VIDEO_ENGINE_IMAGE:-ghcr.io/mhuot/skills-video-engine:0.3.0}"
 docker pull "$SKILLS_VIDEO_ENGINE_IMAGE"
 ```
 
@@ -86,6 +86,64 @@ docker run --rm \
   "$SKILLS_VIDEO_ENGINE_IMAGE" \
   python tools/tts_generate.py
 ```
+
+### Batch narration with `tts-batch`
+
+For multi-segment narration, the engine ships `tts-batch`: a manifest-driven
+orchestrator built for memory-constrained hosts and interrupted runs. It
+synthesizes one segment at a time, streams audio to disk as it is produced
+(never holding a full narration in memory), and checkpoints progress after
+every segment so a killed run resumes where it stopped.
+
+Describe the narration in a project-owned manifest, for example
+`narration.json`:
+
+```json
+{
+  "schema_version": 1,
+  "defaults": {"voice": "af_heart", "speed": 1.1},
+  "segments": [
+    {"id": "scene-01", "text": "A portable engine narrates in segments."},
+    {"id": "scene-02", "text": "Each scene can override the voice.", "voice": "af_bella"}
+  ]
+}
+```
+
+Generate all pending segments; add a Docker memory limit on constrained hosts:
+
+```bash
+docker run --rm \
+  --init \
+  --network none \
+  --memory 2g \
+  --user "$(id -u):$(id -g)" \
+  --volume "$PWD:/project" \
+  --workdir /project \
+  "$SKILLS_VIDEO_ENGINE_IMAGE" \
+  tts-batch narration.json --output-dir video/assets/audio/segments
+```
+
+Each segment becomes `<id>.wav` (24 kHz mono PCM16) alongside
+`tts-state.json`, which records a content fingerprint and measured duration
+per segment. Re-running skips segments whose text and voice settings are
+unchanged; editing a segment regenerates only that segment. `tts-batch`
+exits `0` when every segment is complete and `10` when work remains, so
+`--limit N` slices a large batch into bounded runs:
+
+```bash
+status=10
+while [ "$status" -eq 10 ]; do
+  docker run --rm --init --network none --memory 2g \
+    --user "$(id -u):$(id -g)" --volume "$PWD:/project" --workdir /project \
+    "$SKILLS_VIDEO_ENGINE_IMAGE" \
+    tts-batch narration.json --output-dir video/assets/audio/segments --limit 5
+  status=$?
+done
+```
+
+`--dry-run` reports segment status without loading the model, and `--force`
+regenerates everything. Compositions can read per-segment durations from
+`tts-state.json` instead of re-measuring the audio.
 
 Run the HyperFrames validation ladder from `/project/video`:
 
@@ -199,7 +257,7 @@ From WSL2:
 
 ```bash
 cd ~/my-explainer-video
-export SKILLS_VIDEO_ENGINE_IMAGE="${SKILLS_VIDEO_ENGINE_IMAGE:-ghcr.io/mhuot/skills-video-engine:0.2.1}"
+export SKILLS_VIDEO_ENGINE_IMAGE="${SKILLS_VIDEO_ENGINE_IMAGE:-ghcr.io/mhuot/skills-video-engine:0.3.0}"
 docker pull "$SKILLS_VIDEO_ENGINE_IMAGE"
 docker run --rm --init --shm-size=1g --network none \
   --user "$(id -u):$(id -g)" \
@@ -216,15 +274,15 @@ From PowerShell (less ideal):
 
 ```powershell
 cd $env:USERPROFILE\my-explainer-video
-docker pull ghcr.io/mhuot/skills-video-engine:0.2.1
+docker pull ghcr.io/mhuot/skills-video-engine:0.3.0
 # Files created by the container may be owned by root; chown from WSL or re-run without --user and fix ownership
-docker run --rm ghcr.io/mhuot/skills-video-engine:0.2.1 hyperframes --version
+docker run --rm ghcr.io/mhuot/skills-video-engine:0.3.0 hyperframes --version
 ```
 
 Notes / troubleshooting:
 
 - From a `skills-video-engine` checkout, run
-  `bash scripts/smoke_test.sh ghcr.io/mhuot/skills-video-engine:0.2.1`
+  `bash scripts/smoke_test.sh ghcr.io/mhuot/skills-video-engine:0.3.0`
   inside WSL to exercise the pulled image.
 - If you see permission issues, run `chown` from WSL or re-run container without
   `--user` and fix ownership afterwards.
