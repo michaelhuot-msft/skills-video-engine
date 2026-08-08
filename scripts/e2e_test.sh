@@ -16,7 +16,7 @@ trap cleanup EXIT
 
 cp -R "${fixture_dir}/." "${project_dir}/"
 mkdir -p \
-  "${project_dir}/video/assets/audio" \
+  "${project_dir}/video/assets/audio/segments" \
   "${project_dir}/production/renders" \
   "${project_dir}/production/snapshots"
 
