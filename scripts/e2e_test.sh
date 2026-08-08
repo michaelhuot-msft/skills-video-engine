@@ -24,6 +24,18 @@ curl --fail --location --retry 3 --max-time 60 \
   https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js \
   --output "${project_dir}/video/assets/gsap.min.js"
 test -s "${project_dir}/video/assets/gsap.min.js"
+
+cat >"${project_dir}/narration.json" <<'JSON'
+{
+  "schema_version": 1,
+  "defaults": {"voice": "af_heart", "speed": 1.1},
+  "segments": [
+    {"id": "seg-001", "text": "A portable engine narrates in resumable segments."},
+    {"id": "seg-002", "text": "Interrupted batches continue exactly where they stopped."}
+  ]
+}
+JSON
+
 chmod -R a+rwX "${project_dir}"
 
 run_in() {
@@ -49,6 +61,24 @@ run_in /project python generate_narration.py
 test -s "${project_dir}/video/assets/audio/narration.wav"
 test -s "${project_dir}/durations.json"
 test -s "${project_dir}/video/index.html"
+
+segments_dir="${project_dir}/video/assets/audio/segments"
+
+limit_status=0
+run_in /project tts-batch narration.json \
+  --output-dir video/assets/audio/segments --limit 1 || limit_status=$?
+test "${limit_status}" -eq 10
+test -s "${segments_dir}/seg-001.wav"
+test ! -e "${segments_dir}/seg-002.wav"
+
+run_in /project tts-batch narration.json \
+  --output-dir video/assets/audio/segments
+test -s "${segments_dir}/seg-002.wav"
+test -s "${segments_dir}/tts-state.json"
+
+resume_output="$(run_in /project tts-batch narration.json \
+  --output-dir video/assets/audio/segments)"
+echo "${resume_output}" | grep -q "skipped: 2, generated: 0, remaining: 0"
 
 run_in /project/video hyperframes lint
 run_in /project/video hyperframes check

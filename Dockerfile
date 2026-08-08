@@ -128,7 +128,10 @@ RUN uv python install 3.12 \
     && rm /tmp/hyperframes-tts-build-check.wav \
     && chmod 1777 /tmp/.cache /tmp/.cache/hyperframes /tmp/.cache/hyperframes/tts
 
-RUN rm -rf /tmp/.cache/uv /tmp/.config /tmp/.local \
+COPY --chmod=0755 tools/tts_batch.py /usr/local/bin/tts-batch
+
+RUN tts-batch --help >/dev/null \
+    && rm -rf /tmp/.cache/uv /tmp/.config /tmp/.local \
     && mkdir -p /tmp/.cache /tmp/.config /tmp/.local \
     && chmod 1777 /tmp/.cache /tmp/.config /tmp/.local
 
